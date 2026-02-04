@@ -1,6 +1,11 @@
 *.pem
 *.conf
 
+venv/
+
+# ansible
+*.ini
+ssh/
 # terraform 
 
 # Local .terraform directories

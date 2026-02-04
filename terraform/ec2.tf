@@ -1,3 +1,8 @@
+resource "aws_key_pair" "k8s_key" {
+  key_name   = "k8s-ssh-key"
+  public_key = file("../ssh/k8s-key.pub")
+}
+
 data "aws_ami" "ubuntu" {
   most_recent = true
 
@@ -15,6 +20,8 @@ resource "aws_instance" "tf_k8s_control_plane" {
   subnet_id            = module.vpc.private_subnets[0]
   iam_instance_profile = aws_iam_instance_profile.ec2_ssm_access_profile.name
 
+  key_name = aws_key_pair.k8s_key.key_name
+
   vpc_security_group_ids = [aws_security_group.tf_k8s_sg.id]
 
   tags = {
@@ -28,6 +35,8 @@ resource "aws_instance" "tf_k8s_worker_node" {
   instance_type        = "t2.micro"
   subnet_id            = module.vpc.private_subnets[0]
   iam_instance_profile = aws_iam_instance_profile.ec2_ssm_access_profile.name
+
+  key_name = aws_key_pair.k8s_key.key_name
 
   vpc_security_group_ids = [aws_security_group.tf_k8s_sg.id]
 
@@ -43,6 +52,8 @@ resource "aws_instance" "tf_k8s_nat" {
   subnet_id     = module.vpc.public_subnets[0]
 
   associate_public_ip_address = true
+
+  key_name = aws_key_pair.k8s_key.key_name
 
   vpc_security_group_ids = [aws_security_group.tf_nat_sg.id]
   source_dest_check      = false
