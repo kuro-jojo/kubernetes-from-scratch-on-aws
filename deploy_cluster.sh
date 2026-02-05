@@ -17,7 +17,7 @@ TERRAFORM_CONTROL_PLANE_OUTPUT_NAME="control_plane_ip"
 TERRAFORM_WORKER_NODE_OUTPUT_NAME="worker_node_ip"
 TERRAFORM_DIR=$WORKDIR/terraform
 
-mkdir -p $TERRAFORM_DIR
+mkdir -p "$TERRAFORM_DIR"
 
 
 SSH_DIR=$WORKDIR/ssh
@@ -46,15 +46,16 @@ echo "====== RUNNING terraform ======"
 read -n 1 -p "Run terraform destroy?: " confirm
 
 if [[ $confirm  == "y" || $confirm == "Y" ]]; then
-    echo "\n Running terraform destroy"
-    terraform -chdir=$TERRAFORM_DIR destroy -auto-approve 
+    echo -e "\nRunning terraform destroy"
+    terraform -chdir="$TERRAFORM_DIR" destroy -auto-approve 
 fi
+echo "Running terraform apply"
 
-terraform -chdir=$TERRAFORM_DIR apply -auto-approve 
+terraform -chdir="$TERRAFORM_DIR" apply -auto-approve 
 
-nat_public_ip=$(terraform -chdir=$TERRAFORM_DIR output | grep $TERRAFORM_NAT_PUBLIC_IP_OUTPUT_NAME | awk '{print $3}')
-control_plane_ip=$(terraform -chdir=$TERRAFORM_DIR output | grep $TERRAFORM_CONTROL_PLANE_OUTPUT_NAME | awk '{print $3}')
-worker_node_ip=$(terraform -chdir=$TERRAFORM_DIR output | grep $TERRAFORM_WORKER_NODE_OUTPUT_NAME | awk '{print $3}')
+nat_public_ip=$(terraform -chdir="$TERRAFORM_DIR" output | grep $TERRAFORM_NAT_PUBLIC_IP_OUTPUT_NAME | awk '{print $3}')
+control_plane_ip=$(terraform -chdir="$TERRAFORM_DIR" output | grep $TERRAFORM_CONTROL_PLANE_OUTPUT_NAME | awk '{print $3}')
+worker_node_ip=$(terraform -chdir="$TERRAFORM_DIR" output | grep $TERRAFORM_WORKER_NODE_OUTPUT_NAME | awk '{print $3}')
 
 
 if [[ -z $nat_public_ip || -z $control_plane_ip || -z $worker_node_ip ]]; then
@@ -100,4 +101,7 @@ EOF
 echo "===== Testing ansible connection ======"
 
 cd $ANSIBLE_DIR
+source venv/bin/activate
 ansible k8s_cluster -i inventory.ini -m ping
+
+ansible-playbook -i inventory.ini prepare_nodes.yml

@@ -1,0 +1,97 @@
+---
+- name: Prepare Nodes for Kubernetes
+  hosts: all
+  become: yes
+  tasks:
+    # --- 1. NETWORK & KERNEL PREP ---
+    - name: Load bridge networking modules
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop: [br_netfilter, overlay]
+
+    - name: Persist modules on reboot
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          br_netfilter
+          overlay
+
+    - name: Configure sysctl for K8s networking
+      ansible.posix.sysctl:
+        name: "{{ item }}"
+        value: '1'
+        sysctl_file: /etc/sysctl.d/k8s.conf
+        state: present
+        reload: yes
+      loop:
+        - net.bridge.bridge-nf-call-iptables
+        - net.bridge.bridge-nf-call-ip6tables
+        - net.ipv4.ip_forward
+
+    # --- 2. DISABLE SWAP (Kubelet Requirement) ---
+    - name: Disable swap immediately
+      command: swapoff -a
+      when: ansible_facts["swaptotal_mb"] > 0
+
+    - name: Remove swap from fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+.*)$'
+        replace: '# \1'
+
+    # --- 3. INSTALL CONTAINERD ---
+    - name: Install containerd
+      apt:
+        name: containerd
+        state: present
+        update_cache: yes
+
+    - name: Ensure containerd config directory exists
+      file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+
+    - name: Initialize containerd default config
+      shell: containerd config default > /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+
+    - name: Enable SystemdCgroup in containerd
+      replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+      notify: Restart Containerd
+
+    # --- 4. INSTALL K8S COMPONENTS ---
+    - name: Add K8s apt-key
+      get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        mode: '0644'
+
+    - name: Add K8s repository
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /"
+        state: present
+        filename: kubernetes
+
+    - name: Install K8s tools (locked to version)
+      apt:
+        name: [kubelet, kubeadm, kubectl]
+        state: present
+        update_cache: yes
+
+    - name: Prevent K8s tools from being upgraded automatically
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop: [kubelet, kubeadm, kubectl]
+
+  handlers:
+    - name: Restart Containerd
+      service:
+        name: containerd
+        state: restarted
