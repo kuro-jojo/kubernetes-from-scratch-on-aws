@@ -18,6 +18,24 @@ resource "aws_vpc_security_group_ingress_rule" "allow_api_local" {
   to_port           = 6443
 }
 
+resource "aws_vpc_security_group_ingress_rule" "allow_nat_local" {
+  security_group_id            = aws_security_group.tf_k8s_sg.id
+  referenced_security_group_id = aws_security_group.tf_nat_sg.id
+  from_port                    = 6443
+  ip_protocol                  = "tcp"
+  to_port                      = 6443
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_ssh_from_nat" {
+  security_group_id            = aws_security_group.tf_k8s_sg.id
+  referenced_security_group_id = aws_security_group.tf_nat_sg.id
+  from_port                    = 22
+  to_port                      = 22
+  ip_protocol                  = "tcp"
+  description                  = "Allow SSH hop from NAT instance"
+}
+
+
 # 2. INTERNAL CLUSTER COMMUNICATION (Self-Reference)
 # This allows nodes within this SG to talk to each other on all ports.
 # This covers etcd (2379), kubelet (10250), and scheduler ports.

@@ -40,8 +40,6 @@ sudo systemctl enable --now cri-docker.socket
 systemctl status cri-docker.socket
 
 
-
-
 echo "======= Installing kubeadm, kubelet and kubectl ======="
 sudo apt-get update
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
@@ -54,5 +52,3 @@ sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 
 sudo systemctl enable --now kubelet
-
-

@@ -1,0 +1,36 @@
+---
+- name: Join Worker Nodes to Cluster
+  hosts: workers
+  become: true
+  tasks:
+    # 1. Check if the node is already part of a cluster
+    - name: Check if kubelet.conf exists
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf
+
+    # 2. Upload the join command from your local machine to the worker
+    - name: Copy join command to workers
+      ansible.builtin.copy:
+        src: ./join-command.sh.local
+        dest: /tmp/join-command.sh
+        mode: '0777'
+      when: not kubelet_conf.stat.exists
+
+    # 3. Execute the join command
+    - name: Run the join command
+      ansible.builtin.command: sh /tmp/join-command.sh
+      register: join_result
+      when: not kubelet_conf.stat.exists
+      changed_when: join_result.rc != 0
+
+    - name: Show join result
+      ansible.builtin.debug:
+        msg: "{{ join_result.stdout_lines }}"
+      when: not kubelet_conf.stat.exists
+
+    # 4. Clean up the temporary file
+    - name: Remove the join script
+      ansible.builtin.file:
+        path: /tmp/join-command.sh
+        state: absent
