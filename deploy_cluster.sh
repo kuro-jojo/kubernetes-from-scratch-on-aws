@@ -5,7 +5,7 @@ set -e
 WORKDIR=$(pwd -P)
 
 if [ -z $WORKDIR ]; then
-    echo "Workdir cannot be empty"
+    echo "The workdir cannot be empty"
     exit 1
 fi
 
@@ -19,6 +19,13 @@ TERRAFORM_DIR=$WORKDIR/terraform
 
 mkdir -p "$TERRAFORM_DIR"
 
+read -n 1 -p "Are you running a cleaning process ? : " confirm
+
+if [[ $confirm  == "y" || $confirm == "Y" ]]; then
+    echo -e "\nRunning terraform destroy"
+    terraform -chdir="$TERRAFORM_DIR" destroy -auto-approve 
+    exit 1
+fi
 
 SSH_DIR=$WORKDIR/ssh
 
@@ -49,6 +56,7 @@ if [[ $confirm  == "y" || $confirm == "Y" ]]; then
     echo -e "\nRunning terraform destroy"
     terraform -chdir="$TERRAFORM_DIR" destroy -auto-approve 
 fi
+
 echo "Running terraform apply"
 
 terraform -chdir="$TERRAFORM_DIR" apply -auto-approve 
@@ -95,13 +103,16 @@ worker-1 ansible_host=$worker_node_ip
 [k8s_cluster:children]
 control_plane
 workers
+
+[k8s_cluster:vars]
+default_user=ubuntu
 EOF
 
 
-echo "===== Testing ansible connection ======"
-
 cd $ANSIBLE_DIR
 source venv/bin/activate
-ansible k8s_cluster -i inventory.ini -m ping
+# echo "===== Testing ansible connection ======"
+# ansible k8s_cluster -i inventory.ini -m ping
 
-ansible-playbook -i inventory.ini prepare_nodes.yml
+echo "===== Configuration the cluster by running the ansible playbooks ======"
+ansible-playbook -i inventory.ini main.yml

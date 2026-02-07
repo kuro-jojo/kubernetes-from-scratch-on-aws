@@ -16,7 +16,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "tf_k8s_control_plane" {
   ami                  = data.aws_ami.ubuntu.id
-  instance_type        = "t2.micro"
+  instance_type        = var.k8s_instance_type
   subnet_id            = module.vpc.private_subnets[0]
   iam_instance_profile = aws_iam_instance_profile.ec2_ssm_access_profile.name
 
@@ -32,7 +32,7 @@ resource "aws_instance" "tf_k8s_control_plane" {
 
 resource "aws_instance" "tf_k8s_worker_node" {
   ami                  = data.aws_ami.ubuntu.id
-  instance_type        = "t2.micro"
+  instance_type        = var.k8s_instance_type
   subnet_id            = module.vpc.private_subnets[0]
   iam_instance_profile = aws_iam_instance_profile.ec2_ssm_access_profile.name
 
@@ -48,7 +48,7 @@ resource "aws_instance" "tf_k8s_worker_node" {
 
 resource "aws_instance" "tf_k8s_nat" {
   ami           = var.nat_ami
-  instance_type = "t2.micro"
+  instance_type = var.nat_instance_type
   subnet_id     = module.vpc.public_subnets[0]
 
   associate_public_ip_address = true

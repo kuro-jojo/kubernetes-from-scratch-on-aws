@@ -3,6 +3,9 @@
 
 venv/
 
+*.local
+*.vscode
+*.ansible
 # ansible
 *.ini
 ssh/

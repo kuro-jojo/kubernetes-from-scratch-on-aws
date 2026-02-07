@@ -1,0 +1,6 @@
+---
+- ansible.builtin.import_playbook: prepare_nodes.yml
+
+- ansible.builtin.import_playbook: init_master.yml
+
+- ansible.builtin.import_playbook: join_workers.yml
