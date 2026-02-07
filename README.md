@@ -1,61 +1,45 @@
-# K8s From Scratch: AWS Exploration
+# Kubernetes From Scratch on AWS
 
-This repository documents my journey of deploying a Kubernetes cluster from the ground up on AWS EC2 using `kubeadm`. The goal of this project is to evolve a manual "proof-of-concept" into a hardened, automated, and production-ready environment.
+This repository is an exploratory, educational project that documents and automates the steps required to bootstrap a small Kubernetes cluster on AWS EC2 using `kubeadm`.
 
-## 🏗 Current Architecture (Phase 1)
-The cluster is currently a minimal setup focused on functional validation and understanding the bootstrap process.
+Purpose:
+- Capture the manual steps needed to understand cluster bootstrapping.
+- Produce reusable scripts and Ansible playbooks to automate those steps.
+- Evolve the POC into a more secure, idempotent IaC-based deployment.
 
-* **Infrastructure:** 2x EC2 Instances (Control Plane & Worker Node).
-* **OS:** Ubuntu 22.04.
-* **Runtime:** Docker Engine with `cri-dockerd`.
-* **Networking (CNI):** Flannel (VxLAN).
-* **Control Plane:** Single master initialized via `kubeadm`, exposed via Public IP for local `kubectl` access.
+## What this repo contains
 
+- `scripts/` : small shell helpers used during early experiments (prep nodes, init master, add user, enable bridge networking).
+- `ansible/` : playbooks and roles used to configure nodes and run idempotent steps.
+- `terraform/` : basic Terraform files used to provision VPC, security groups, and EC2 machines (work in progress).
+ - `deploy_cluster.sh` : orchestration script that provisions infrastructure (Terraform) and deploys the cluster by running the Ansible playbooks.
 
+## Achievements (what's implemented)
 
----
+ - Terraform configurations to provision VPC, NAT, security groups, and EC2 instances (baseline implemented).
+ - Nodes run in private subnets and do not expose SSH : access to instances is done via AWS SSM (no direct SSH). 
+ - Ansible playbooks and inventories to configure nodes and run the final cluster setup (provisioning + configuration flow implemented).
 
-## 🚀 Setup Steps Included
-The scripts in this repository automate:
-1.  **System Preparation:** Disabling swap, loading kernel modules (`overlay`, `br_netfilter`), and configuring `sysctl` for bridged traffic.
-2.  **Runtime Installation:** Deployment of Docker and the `cri-dockerd` adapter required for Kubernetes 1.24+.
-3.  **K8s Tooling:** Installation of `kubelet`, `kubeadm`, and `kubectl`.
-4.  **Cluster Initialization:** `kubeadm init` using `--control-plane-endpoint` to allow remote access.
-5.  **Identity & RBAC:** Manual generation of user certificates (X.509) and associated `RoleBinding` for restricted access.
+## Remaining work / Known limitations
 
----
+- Defining and hardening external user access (how external users securely reach the cluster API and kubeconfigs).
 
-## ⚠️ Current Limitations
-* **Security:** Instances are in Public Subnets; Port 22 (SSH) and 6443 (API) are open to `0.0.0.0/0`.
-* **Identity:** Using static certificates (no easy revocation) instead of OIDC.
-* **Networking:** Flannel does not support **Network Policies**, meaning there is no isolation between pods.
-* **Resiliency:** Single Control Plane node (no High Availability).
-* **Deployment:** Manual "ClickOps" used for initial AWS infrastructure.
+## Quick start (experiment / local use)
 
----
+1. Ensure you have an AWS account and credentials with the required permissions for Terraform to create VPCs, Security Groups, and EC2 instances.
 
-## 🛠 Roadmap
+2. Run the repository's final automation flow (Terraform + Ansible or the orchestration wrapper) : do not run the legacy `scripts/` helpers used during initial manual experiments. Example options:
 
-### Phase 2: Hardening (Current Goal)
-- [ ] **Private Networking:** Move nodes to private subnets.
-- [ ] **Secure Access:** Remove public IPs; use **AWS SSM Session Manager** or **Tailscale** for cluster management.
-- [ ] **CRI Migration:** Transition from Docker to **containerd** for a lighter footprint.
-- [ ] **Policy Enforcement:** Replace Flannel with **Calico** to implement Pod-to-Pod firewalls.
+```bash
+./deploy_cluster.sh
+```
 
-### Phase 3: Infrastructure as Code (IaC)
-- [ ] **Terraform:** Automate VPC, Security Groups, and EC2 provisioning.
-- [ ] **Ansible:** Replace manual scripts with idempotent playbooks for node configuration.
+Notes:
+- The `scripts/` folder contains older manual helpers and should not be used for the final automated flow.
+- This deployment is for experimental and learning environments; follow hardening steps before running production workloads.
 
-### Phase 4: Advanced Identity
-- [ ] **OIDC:** Integrate GitHub Actions or Google Workspace for cluster authentication.
+## Next steps I intend to work on
 
----
-
-## 📝 How to Use
-> **Warning:** This setup is for educational purposes. Do not run production workloads on this configuration.
-
-1.  Provision two Ubuntu 22.04 instances on AWS.
-2.  Execute `scripts/01_prep.sh` on both nodes.
-3.  Execute `scripts/02_master.sh` on the Control Plane.
-4.  Run the generated `kubeadm join` command on the Worker Node.
-5. (Optional) To add a user "kuro" run the `scripts/03_add_user.sh` script
+- Finish Terraform automation for a repeatable infra provisioning pipeline.
+- Implement secure external access to the cluster API (e.g., via a bastion or load balancer).
+...
