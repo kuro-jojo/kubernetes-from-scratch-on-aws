@@ -1,0 +1,15 @@
+- name: Remove nodes from tailscale
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if tailscale is installed
+      ansible.builtin.stat:
+        path: /usr/bin/tailscale
+      register: tailscale_bin
+
+    - name: Run tailscale down
+      ansible.builtin.command: tailscale down --accept-risk=all
+      async: 10
+      poll: 0
+      when: tailscale_bin.stat.exists
+      changed_when: false

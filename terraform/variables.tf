@@ -10,6 +10,8 @@ variable "nat_instance_type" {
   default = "t2.micro"
 }
 
-variable "my_ip_cidr" {
-  description = "User pi CIDR overriden in a tfvars or in command line"
+variable "enable_ssh_rules" {
+  type        = bool
+  default     = true
+  description = "Use to remove Security group rule that allows ssh into the private subnet"
 }

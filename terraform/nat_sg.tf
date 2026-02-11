@@ -56,11 +56,3 @@ resource "aws_vpc_security_group_egress_rule" "tf_nat_sg_outbound_ssh" {
   ip_protocol       = "tcp"
   to_port           = 22
 }
-
-resource "aws_vpc_security_group_egress_rule" "nat_to_private_k8s" {
-  security_group_id = aws_security_group.tf_nat_sg.id
-  cidr_ipv4         = module.vpc.private_subnets_cidr_blocks[0]
-  from_port         = 6443
-  ip_protocol       = "tcp"
-  to_port           = 6443
-}
