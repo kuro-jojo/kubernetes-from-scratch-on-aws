@@ -3,8 +3,17 @@
   hosts: control_plane
   become: true
   tasks:
+    - name: Get tailscale IP address
+      ansible.builtin.command: tailscale ip --4
+      register: tailscale_ip_output
+      changed_when: false
+
+    - name: Set IP as a fact
+      ansible.builtin.set_fact:
+        node_tailscale_ip: "{{ tailscale_ip_output.stdout | trim }}"
+
     - name: Initialize the Kubernetes cluster with kubeadm
-      ansible.builtin.command: kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-cert-extra-sans=127.0.0.1
+      ansible.builtin.command: kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-cert-extra-sans="{{ node_tailscale_ip }}"
       args:
         creates: /etc/kubernetes/admin.conf
       register: kubeadm_init
@@ -43,9 +52,21 @@
         flat: true
       notify: Remove join files
 
+    - name: Copy admin.conf config file
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /tmp/kubeconfig-cluster.conf.local
+        remote_src: true
+        mode: '0600'
+
+    - name: Update local kubeconfig cluster server to point tailscale ip
+      ansible.builtin.command:
+        kubectl config set-cluster kubernetes --server=https://{{ node_tailscale_ip }}:6443 --kubeconfig=/tmp/kubeconfig-cluster.conf.local
+      changed_when: false
+
     - name: Fetch kubeconfig to local machine
       ansible.builtin.fetch:
-        src: /etc/kubernetes/admin.conf
+        src: /tmp/kubeconfig-cluster.conf.local
         dest: ./kubeconfig-cluster.conf.local
         flat: true
 

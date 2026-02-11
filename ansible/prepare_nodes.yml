@@ -97,6 +97,22 @@
         create_home: true
         shell: /bin/bash
 
+    - name: Download tailscale binary
+      ansible.builtin.get_url:
+        url: https://tailscale.com/install.sh
+        dest: /tmp/tailscale.sh
+        mode: '0500'
+
+    - name: Install tailscale
+      ansible.builtin.command: sh /tmp/tailscale.sh
+      register: my_output
+      changed_when: my_output.rc != 0
+
+    - name: Start tailscale and authenticate
+      ansible.builtin.command: tailscale up --authkey={{ tailscale_auth_key }}
+      register: my_output
+      changed_when: my_output.rc != 0
+
   handlers:
     - name: Restart Containerd
       ansible.builtin.service:

@@ -12,3 +12,11 @@ output "worker_node_ip" {
   value       = aws_instance.tf_k8s_worker_node.private_ip
   description = "Private IP of the worker node"
 }
+
+output "private_ips" {
+  value = [aws_instance.tf_k8s_control_plane.private_ip, aws_instance.tf_k8s_worker_node.private_ip]
+}
+
+output "enable_ssh_rules" {
+  value = var.enable_ssh_rules
+}
