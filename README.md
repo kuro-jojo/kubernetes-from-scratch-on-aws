@@ -1,6 +1,6 @@
 # Kubernetes From Scratch on AWS
 
-This repository is an exploratory, educational project that documents and automates the steps required to bootstrap a small Kubernetes cluster on AWS EC2 using `kubeadm`.
+This repository is an educational project that documents and automates the steps required to bootstrap a small Kubernetes cluster on AWS EC2 using `kubeadm`.
 
 Purpose:
 - Capture the manual steps needed to understand cluster bootstrapping.
@@ -19,27 +19,36 @@ Purpose:
  - Terraform configurations to provision VPC, NAT, security groups, and EC2 instances (baseline implemented).
  - Nodes run in private subnets and do not expose SSH : access to instances is done via AWS SSM (no direct SSH). 
  - Ansible playbooks and inventories to configure nodes and run the final cluster setup (provisioning + configuration flow implemented).
+- Tailscale is used to provide secure access to the cluster nodes for management and debugging (provisioning flow implemented).
 
-## Remaining work / Known limitations
 
-- Defining and hardening external user access (how external users securely reach the cluster API and kubeconfigs).
+## Requirements
+
+- AWS account and credentials with permissions for Terraform to create VPCs, Security Groups, and EC2 instances.
+- `terraform` installed and available in your PATH.
+- `ansible` installed and available in your PATH.
+- `tailscale` available on the admin/control host for node provisioning and access.
+- Tailscale auth key: the deployment scripts expect a Tailscale auth key to provision nodes into your Tailnet. Provide the key as an environment variable named `TAILSCALE_AUTH_KEY` or pass it when invoking `deploy_cluster.sh`.
+
 
 ## Quick start (experiment / local use)
 
-1. Ensure you have an AWS account and credentials with the required permissions for Terraform to create VPCs, Security Groups, and EC2 instances.
+Run the repository's final automation flow (Terraform + Ansible or the orchestration wrapper) — do not run the legacy `scripts/` helpers used during initial manual experiments. 
 
-2. Run the repository's final automation flow (Terraform + Ansible or the orchestration wrapper) : do not run the legacy `scripts/` helpers used during initial manual experiments. Example options:
+Example option:
+
 
 ```bash
+# export the auth key (recommended)
+export TAILSCALE_AUTH_KEY="tskey_your_auth_key_here"
 ./deploy_cluster.sh
-```
 
+# or pass it inline for a single invocation
+TAILSCALE_AUTH_KEY="tskey_your_auth_key_here" ./deploy_cluster.sh
+
+# or directly specify the key in the script call
+./deploy_cluster.sh "tskey_your_auth_key_here"
+```
 Notes:
 - The `scripts/` folder contains older manual helpers and should not be used for the final automated flow.
 - This deployment is for experimental and learning environments; follow hardening steps before running production workloads.
-
-## Next steps I intend to work on
-
-- Finish Terraform automation for a repeatable infra provisioning pipeline.
-- Implement secure external access to the cluster API (e.g., via a bastion or load balancer).
-...
